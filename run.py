@@ -1,14 +1,24 @@
+import datetime
+from functools import wraps
 import os
 import sys
 import re
 from importlib import reload
-from flask import Flask, render_template, redirect, request, url_for
+from flask import Flask, render_template, redirect, request, url_for, jsonify, make_response
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+import uuid
+from flask_jwt_extended import JWTManager
 
-# Needed for encoding to utf8
+#Database for user information is unimplemented but is titled User 
+# User database contains user_id (uuid), username(unique), password, user_highscores(top 20) and user_past_scores(last 20)
+
+# Needed for encoding to utf8   
 reload(sys)
 
 app = Flask(__name__)
 app.secret_key = 'some_secret'
+app.config["JWT_SECRET_KEY"] = "some_secret_key"
 data = []
 
 def sanitisename(username):
@@ -115,8 +125,7 @@ def get_scores():
     usernames_and_scores = sorted(zip(usernames, scores), key=lambda x: x[1], reverse=True)
     return usernames_and_scores
 
-
-# HOMEPAGE
+#HOMEPAGE
 @app.route('/', methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -128,6 +137,66 @@ def index():
             return redirect(url_for('user', username=username))
     return render_template("index.html", page_title="Home")
 
+
+#login function will become initial homepage
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        unsafe_username = request.form['username']
+        password = request.form['password']
+        username = sanitisename(unsafe_username)
+        
+        user = User.query.filter_by(username= username).first()
+
+        if not user or not check_password_hash(user.password, password):
+            return jsonify({'message': 'Invalid email or password'}), 401
+
+        else:
+            token = jwt.encode({'user_id': user.user_id, 'exp': datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)},
+                           app.config['SECRET_KEY'], algorithm="HS256")
+            response = make_response(redirect(url_for('user', username = username)))
+            response.set_cookie('jwt_token', token)
+
+            return response
+
+    return render_template('login.html')
+
+@app.route('/create_account', methods=['GET', 'POST'])
+def create_account():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        existing_user = User.query.filter_by(username= username).first()
+        if existing_user:
+            return jsonify({'message': 'User already exists. Please login.'}), 400
+
+        hashed_password = generate_password_hash(password)
+        new_user = User(user_id=str(uuid.uuid4()), username=username,  password=hashed_password)
+
+        #new user will be added to unimplemented database User
+
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.cookies.get('jwt_token')
+
+        if not token:
+            return jsonify({'message': 'Missing Token!'}), 401
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = User.query.filter_by(user_id=data['user_id']).first()
+        except:
+            return jsonify({'message': 'Invalid Token!'}), 401
+
+        return f(current_user, *args, **kwargs)
+
+    return decorated
 
 # USER WELCOME PAGE
 @app.route('/<username>', methods=["GET", "POST"])
@@ -260,6 +329,15 @@ def highscores():
 
     return render_template("highscores.html", page_title="Highscores", usernames_and_scores=usernames_and_scores)
 
+@app.route('/user_scores')
+@token_required
+def userScores(current_user):
+    user_highscores = User.query.get(current_user.highscores)
+    user_past_scores = User.query.get(current_user.past_scores)
+    
+    return render_template("user_scores.html", page_title= "User Scores", user_highscores = user_highscores, user_past_scores = user_past_scores)
+    
+    
 
 if __name__ == '__main__':
     ip = "127.0.0.1"

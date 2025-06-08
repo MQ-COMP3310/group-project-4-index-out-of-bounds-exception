@@ -1,0 +1,35 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container base-content">
+    <div class="row">
+        <div class="col text-center">
+            <br>
+            <form method="POST">
+                <h3>Log In Or Continue As Guest</h3>
+                <br>
+                <label for="username">
+                    Username:
+                </label>
+                <input type="text" id="username" name="username" placeholder="Enter Your Username" required autofocus/>
+                <br>
+                <label for="password">
+                    Password:
+                </label>
+                <input type="password" id="password" name="password" placeholder="Enter Your Password" required>
+                <br>
+                <br>
+                <button class="btn btn-dark hvr-round-corners">Submit</button>
+            </form>
+            <p>Dont Have An Account?
+                <a href="{{url_for("create_account")}}" style="text-decoration: none;">
+                    Create an account
+                </a>
+            </p>
+            <p>Or
+                <a href="{{url_for("welcome", username = Guest)}}" style="text-decoration: none;">
+                    Continue As Guest
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
