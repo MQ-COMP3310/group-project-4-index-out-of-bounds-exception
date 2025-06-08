@@ -16,16 +16,16 @@ from flask_jwt_extended import JWTManager
 # Needed for encoding to utf8   
 reload(sys)
 
-app = Flask(__name__)
+app = Flask(__name__) #Task 7 (a)
 app.secret_key = 'some_secret'
 app.config["JWT_SECRET_KEY"] = "some_secret_key"
 data = []
 
-def sanitisename(username):
+def sanitisename(username): #Task 9 (a)
     #Only letters and numbers
     return re.sub(r'[^a-z0-9]','',username) # re.sub removes non letter and number symbols from the username
 
-def traversalprevention(filename, mode): #This is used whenever an open() method is used to check the filename for path transveral properties ie "../../etc"
+def traversalprevention(filename, mode): #Task 9 (a) #This is used whenever an open() method is used to check the filename for path transveral properties ie "../../etc"
     path = os.path.abspath(filename) #Declaring path
     if path.startswith("../"): #If the path starts with ../../ etc. 
         return error("Invalid File Path") #Return an error instead of displaying webpage
@@ -268,7 +268,7 @@ def game(username):
                             username=username, riddle_index=riddle_index, riddles=riddles,
                             answers=answers, attempts=store_all_attempts(username), remaining_attempts=attempts_remaining(), score=end_score(username))
 
-#Light & Dark Mode Toggle
+#Light & Dark Mode Toggle Task 9 (a)
 @app.route('/theme-toggler', methods=["GET", "POST"]) #Endpoint/Routing
 def lightanddark(): #Function Definition
     themecur = session.get('theme', 'light') #Current Theme
@@ -278,7 +278,7 @@ def lightanddark(): #Function Definition
         session['theme'] = 'light'
 
 
-#Display Hint
+#Display Hint Task 9 (a)
 @app.route('/<username>/game', methods=["GET","POST"])
 def displayhints(hint_used, riddle_index):
     if hint_used:
