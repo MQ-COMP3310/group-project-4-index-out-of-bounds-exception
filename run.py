@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 from importlib import reload
 from flask import Flask, render_template, redirect, request, url_for
 
@@ -10,6 +11,14 @@ app = Flask(__name__)
 app.secret_key = 'some_secret'
 data = []
 
+def sanitisename(username):
+    #Only letters and numbers
+    return re.sub(r'[^a-z0-9]','',username) # re.sub removes non letter and number symbols from the username
+
+def traversalprevention(filename, mode):
+    path = os.path.abspath(os.path.join(data, filename)) #Declaring path
+    if path startswith(malicious path): #If the path starts with ../../ etc. 
+        return error("Invalid File Path") #Return an error instead of displaying webpage
 
 def write_to_file(filename, data):
     with open(filename, "a+") as file:
@@ -19,7 +28,7 @@ def write_to_file(filename, data):
 #This is where the riddles live
 def riddle():
     riddles = []
-    with open("data/-riddles.txt", "r") as e:
+    with open(traversalprevention("data/-riddles.txt", "r")) as e:
         lines = e.read().splitlines()
     for line in lines:
         riddles.append(line)
@@ -29,7 +38,7 @@ def riddle():
 # This is where the answers for the riddles live
 def riddle_answers():
     answers = []
-    with open("data/-answers.txt", "r") as e:
+    with open(traversalprevention("data/-answers.txt", "r")) as e:
         lines = e.read().splitlines()
     for line in lines:
         answers.append(line)
@@ -38,18 +47,18 @@ def riddle_answers():
 
 # Clear functions for wrong answers and score
 def clear_guesses(username):
-    with open("data/user-" + username + "-guesses.txt", "w"):
+    with open(traversalprevention("data/user-" + username + "-guesses.txt", "w")):
         return
 
 def clear_score(username):
-    with open("data/user-" + username + "-score.txt", "w"):
+    with open(traversalprevention("data/user-" + username + "-score.txt", "w")):
         return
 
 
 # Wrong answer handling
 def store_all_attempts(username):
     attempts = []
-    with open("data/user-" + username + "-guesses.txt", "r") as incorrect_attempts:
+    with open(traversalprevention("data/user-" + username + "-guesses.txt", "r")) as incorrect_attempts:
         attempts = incorrect_attempts.readlines()
     return attempts
 
@@ -69,7 +78,7 @@ def add_to_score():
 
 #Adds all the scores from all riddles to make final score
 def end_score(username):
-    with open("data/user-" + username + "-score.txt", "r") as numbers_file:
+    with open(traversalprevention("data/user-" + username + "-score.txt", "r")) as numbers_file:
         total = 0
         for line in numbers_file:
             try:
@@ -83,7 +92,7 @@ def final_score(username):
     score = str(end_score(username))
 
     if username != "" and score != "":
-        with open("data/-highscores.txt", "a") as file:
+        with open(traversalprevention(("data/-highscores.txt", "a")) as file:
                 file.writelines(username + "\n")
                 file.writelines(score + "\n")
     else:
@@ -94,7 +103,7 @@ def get_scores():
     usernames = []
     scores = []
 
-    with open("data/-highscores.txt", "r") as file:
+    with open(traversalprevention("data/-highscores.txt", "r")) as file:
         lines = file.read().splitlines()
     # Separates usernames and scores
     for i, text in enumerate(lines):
@@ -125,9 +134,9 @@ def index():
 def user(username):
 
     # Create a User Specific File for Score Keeping etc.
-    open("data/user-" + username + "-score.txt", 'a').close()
+    open(traversalprevention("data/user-" + username + "-score.txt", 'a')).close()
     clear_score(username)
-    open("data/user-" + username + "-guesses.txt", 'a').close()
+    open(traversalprevention("data/user-" + username + "-guesses.txt", 'a')).close()
     clear_guesses(username)
 
     if request.method =="POST":
@@ -140,17 +149,24 @@ def user(username):
 # GAME PAGE
 @app.route('/<username>/game', methods=["GET", "POST"])
 def game(username):
+    if 'theme' not in session: #Sets the default theme to light mode if the user has not chosen a preference before
+        session['theme'] = light
 
     remaining_attempts = 3
     riddles = riddle()
     riddle_index = 0
     answers = riddle_answers()
+    hintuse = False #Check whether hint has been used
     score = 0
 
     if request.method == "POST":
 
         riddle_index = int(request.form["riddle_index"])
-        user_response = request.form["answer"].title()
+        #user_response = request.form["answer"].title()
+        user_response = request.form.get("action", "answer")
+
+        if user_response = "hint":
+            hint_used = True
 
         write_to_file("data/user-" + username + "-guesses.txt", user_response + "\n")
 
@@ -176,11 +192,26 @@ def game(username):
             else:
                 # If all attempts are used up, redirect to Gameover page
                 return redirect(url_for('gameover', username=username))
+    
+    hint_used = session.get(hint_used, False)
 
     return render_template("game.html",
                             username=username, riddle_index=riddle_index, riddles=riddles,
                             answers=answers, attempts=store_all_attempts(username), remaining_attempts=attempts_remaining(), score=end_score(username))
 
+#Light & Dark Mode Toggle
+@app.route('/theme-toggler', methods=["GET", "POST"]) #Endpoint/Routing
+def lightanddark(): #Function Definition
+    themecur = session.get('theme', 'light') #Current Theme
+    session['theme'] = dark if themecur == 'light' #Toggle to dark if current theme is light
+    else session['theme'] = light #Otherwise toggle theme to light if the current theme is dark
+
+#Display Hint
+@app.route('/<username>/game', methods=["GET","POST"])
+def displayhints(hint_used, riddle_index):
+    if hint_used:
+        display(hint, riddle_index) #Show the hint for X riddle when the button is clicked
+    return displayhints
 
 # GAMEOVER PAGE
 @app.route('/<username>/gameover', methods=["GET", "POST"])
@@ -194,6 +225,7 @@ def gameover(username):
     riddle_index = 0
     answers = riddle_answers()
     score = 0
+    hintuse = False
 
     if request.method =="POST":
 
