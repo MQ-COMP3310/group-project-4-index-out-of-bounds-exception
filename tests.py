@@ -11,9 +11,6 @@ def pathtraversal(path):
 def validname(username):
 #Test that the regex for the username works
 
-def injection():
-#Test that injection is prevented
-
 def token(session):
 #Test that a new token is generated every session
 
