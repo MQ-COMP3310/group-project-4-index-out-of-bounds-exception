@@ -47,13 +47,13 @@
 </div>
 
 <div class="col-md-12">
-  <form method="POST" user_response="{{Hint, username, riddle_index}}">
+  <form method="POST" user_response="{{Hint, username, riddle_index}}"> #Added button for the hints toggler
    <button> button type="submit" </button>
 </form>
 </div>
 
 <div class="col-md-12"> 
-  <form user_response="Toggle button" method="POST">
+  <form user_response="Toggle button" method="POST"> #Added button for the theme toggler
     <button> button type="submit" 
       session['theme'] = 'dark' if 'theme' = light
       session['theme'] = 'light' if 'theme' = dark

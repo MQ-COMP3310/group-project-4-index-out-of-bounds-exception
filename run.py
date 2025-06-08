@@ -15,9 +15,9 @@ def sanitisename(username):
     #Only letters and numbers
     return re.sub(r'[^a-z0-9]','',username) # re.sub removes non letter and number symbols from the username
 
-def traversalprevention(filename, mode):
-    path = os.path.abspath(os.path.join(data, filename)) #Declaring path
-    if path startswith(malicious path): #If the path starts with ../../ etc. 
+def traversalprevention(filename, mode): #This is used whenever an open() method is used to check the filename for path transveral properties ie "../../etc"
+    path = os.path.abspath(filename) #Declaring path
+    if path.startswith("../"): #If the path starts with ../../ etc. 
         return error("Invalid File Path") #Return an error instead of displaying webpage
 
 def write_to_file(filename, data):
@@ -28,7 +28,7 @@ def write_to_file(filename, data):
 #This is where the riddles live
 def riddle():
     riddles = []
-    with open(traversalprevention("data/-riddles.txt", "r")) as e:
+    with open(traversalprevention("data/-riddles.txt", "r")) as e: 
         lines = e.read().splitlines()
     for line in lines:
         riddles.append(line)
@@ -92,7 +92,7 @@ def final_score(username):
     score = str(end_score(username))
 
     if username != "" and score != "":
-        with open(traversalprevention(("data/-highscores.txt", "a")) as file:
+        with open(traversalprevention("data/-highscores.txt", "a")) as file:
                 file.writelines(username + "\n")
                 file.writelines(score + "\n")
     else:
@@ -165,7 +165,7 @@ def game(username):
         #user_response = request.form["answer"].title()
         user_response = request.form.get("action", "answer")
 
-        if user_response = "hint":
+        if user_response == "hint":
             hint_used = True
 
         write_to_file("data/user-" + username + "-guesses.txt", user_response + "\n")
@@ -203,8 +203,11 @@ def game(username):
 @app.route('/theme-toggler', methods=["GET", "POST"]) #Endpoint/Routing
 def lightanddark(): #Function Definition
     themecur = session.get('theme', 'light') #Current Theme
-    session['theme'] = dark if themecur == 'light' #Toggle to dark if current theme is light
-    else session['theme'] = light #Otherwise toggle theme to light if the current theme is dark
+    if themecur == 'light': #If the theme is in light mode the theme will change to dark
+        session['theme'] = 'dark' 
+    else: #If the theme is in dark mode the theme will change to light
+        session['theme'] = 'light'
+
 
 #Display Hint
 @app.route('/<username>/game', methods=["GET","POST"])
